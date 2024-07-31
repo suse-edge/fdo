@@ -1,0 +1,159 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: "2024-07-29T13:18:54Z"
+  labels:
+    app: manufacturing-server
+  name: manufacturing-server
+spec:
+  ports:
+    - name: "9001"
+      nodePort: 30077
+      port: 9001
+      targetPort: 9001
+  selector:
+    app: manufacturing-server
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manufacturing-server
+  labels:
+    app: manufacturing-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: manufacturing-server
+  template:
+    metadata:
+      annotations:
+        # bind-mount-options: /root/fdo/config:Z
+      labels:
+        app: manufacturing-server
+      name: manufacturing-server
+    spec:
+      containers:
+        - image: quay.io/fido-fdo/manufacturing-server:latest
+          name: manufacturing-server
+          ports:
+            - containerPort: 9001
+              hostPort: 9001
+          volumeMounts:
+            - mountPath: /etc/fdo/manufacturing-server.conf.d/
+              name: manufacturing-server-config
+              readOnly: true
+            - mountPath: /etc/fdo/sessions
+              name: sessions
+            - mountPath: /etc/fdo/ownership_vouchers
+              name: ownership-vouchers
+            - mountPath: /etc/fdo/allkeys/
+              name: all-keys
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          # command: ["ls", "-l", "/etc/fdo/allkeys"]
+      volumes:
+        - name: manufacturing-server-config
+          configMap:
+            name: manufacturing-server-config
+        - name: sessions
+          emptyDir: {}
+        - name: ownership-vouchers
+          persistentVolumeClaim:
+            claimName: fdo-ownership-vouchers-pvc
+        - name: all-keys
+          # alternatively to this the secrets could be put into a single secret with multiple files/keys
+          # see https://stackoverflow.com/questions/59079318/how-to-mount-multiple-files-secrets-into-common-directory-in-kubernetes
+          projected:
+            sources:
+              - secret:
+                  name: device-ca-cert-pem
+              - secret:
+                  name: device-ca-key-der
+              - secret:
+                  name: diun-cert-pem
+              - secret:
+                  name: diun-key-der
+              - secret:
+                  name: manufacturer-cert-pem
+              - secret:
+                  name: manufacturer-key-der
+              - secret:
+                  name: owner-cert-pem
+              - secret:
+                  name: owner-key-der
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: manufacturing-server-config
+data:
+  manufacturing-server.yml: |+
+    ---
+    session_store_driver:
+      Directory:
+        path: /etc/fdo/sessions
+    ownership_voucher_store_driver:
+      Directory:
+        path: /etc/fdo/ownership_vouchers
+    public_key_store_driver:
+      Directory:
+        path: /etc/fdo/keys
+    bind: 0.0.0.0:9001
+    rendezvous_info:
+    - dns: fdo.example.com
+      device_port: 8082
+      owner_port: 8082
+      protocol: http
+    - ip: 127.0.0.1
+      device_port: 8084
+      owner_port: 8084
+      protocol: http
+    protocols:
+      diun:
+        key_path: /etc/fdo/allkeys/diun_key.der
+        cert_path: /etc/fdo/allkeys/diun_cert.pem
+        key_type: SECP256R1
+        mfg_string_type: SerialNumber
+        allowed_key_storage_types:
+        - FileSystem
+    manufacturing:
+      manufacturer_cert_path: /etc/fdo/allkeys/manufacturer_cert.pem
+      manufacturer_private_key: /etc/fdo/allkeys/manufacturer_key.der
+      owner_cert_path: /etc/fdo/allkeys/owner_cert.pem
+      device_cert_ca_private_key: /etc/fdo/allkeys/device_ca_key.der
+      device_cert_ca_chain: /etc/fdo/allkeys/device_ca_cert.pem
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: fdo-pv-volume
+  labels:
+    type: local
+spec:
+  # storageClassName: manual
+  capacity:
+    storage: 200Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    # path: "/mnt/data"
+    path: "/root/fdo/data"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fdo-ownership-vouchers-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Mi
+
