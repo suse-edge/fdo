@@ -68,7 +68,6 @@ spec:
           name: manufacturing-server
           ports:
             - containerPort: 9001
-              hostPort: 9001
           volumeMounts:
             - mountPath: /etc/fdo/manufacturing-server.conf.d/
               name: manufacturing-server-config
