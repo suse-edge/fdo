@@ -2,19 +2,39 @@
 apiVersion: v1
 kind: Service
 metadata:
-  creationTimestamp: "2024-07-29T13:18:54Z"
   labels:
     app: manufacturing-server
   name: manufacturing-server
 spec:
   ports:
-    - name: "9001"
-      nodePort: 30077
+    # - name: "9001"
+    #   nodePort: 30077
+    #   port: 9001
+    #   targetPort: 9001
+    - protocol: TCP
       port: 9001
       targetPort: 9001
   selector:
     app: manufacturing-server
   type: NodePort
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: manufacturing-server-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: manufacturing-192.168.122.70.sslip.io
+    - http:
+        paths:
+          - backend:
+              service:
+                name: manufacturing-server
+                port:
+                  number: 9001
+            path: /
+            pathType: Prefix
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -49,14 +69,14 @@ spec:
               name: sessions
             - mountPath: /etc/fdo/ownership_vouchers
               name: ownership-vouchers
-            - mountPath: /etc/fdo/allkeys/
-              name: all-keys
+            - mountPath: /etc/fdo/keys/
+              name: keys
               readOnly: true
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
-          # command: ["ls", "-l", "/etc/fdo/allkeys"]
+          # securityContext:
+          #   allowPrivilegeEscalation: false
+          #   capabilities:
+          #     drop: ["ALL"]
+          # command: ["ls", "-l", "/etc/fdo/keys"]
       volumes:
         - name: manufacturing-server-config
           configMap:
@@ -64,11 +84,15 @@ spec:
         - name: sessions
           emptyDir: {}
         - name: ownership-vouchers
-          persistentVolumeClaim:
-            claimName: fdo-ownership-vouchers-pvc
-        - name: all-keys
+          emptyDir: {}
+          # persistentVolumeClaim:
+          #   claimName: fdo-ownership-vouchers-pvc
+        - name: keys
           # alternatively to this the secrets could be put into a single secret with multiple files/keys
           # see https://stackoverflow.com/questions/59079318/how-to-mount-multiple-files-secrets-into-common-directory-in-kubernetes
+          # or use multiple secrets mounted to the same directory:
+          # https://github.com/fdo-rs/fdo-operator/blob/main/controllers/fdomanufacturingserver_controller.go#L157-L160
+          # (https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/#mounting-the-same-persistentvolume-in-two-places)
           projected:
             sources:
               - secret:
@@ -87,6 +111,10 @@ spec:
                   name: owner-cert-pem
               - secret:
                   name: owner-key-der
+      # securityContext:
+      #   runAsNonRoot: true
+      #   seccompProfile:
+      #     type: RuntimeDefault
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -116,18 +144,18 @@ data:
       protocol: http
     protocols:
       diun:
-        key_path: /etc/fdo/allkeys/diun_key.der
-        cert_path: /etc/fdo/allkeys/diun_cert.pem
+        key_path: /etc/fdo/keys/diun_key.der
+        cert_path: /etc/fdo/keys/diun_cert.pem
         key_type: SECP256R1
         mfg_string_type: SerialNumber
         allowed_key_storage_types:
         - FileSystem
     manufacturing:
-      manufacturer_cert_path: /etc/fdo/allkeys/manufacturer_cert.pem
-      manufacturer_private_key: /etc/fdo/allkeys/manufacturer_key.der
-      owner_cert_path: /etc/fdo/allkeys/owner_cert.pem
-      device_cert_ca_private_key: /etc/fdo/allkeys/device_ca_key.der
-      device_cert_ca_chain: /etc/fdo/allkeys/device_ca_cert.pem
+      manufacturer_cert_path: /etc/fdo/keys/manufacturer_cert.pem
+      manufacturer_private_key: /etc/fdo/keys/manufacturer_key.der
+      owner_cert_path: /etc/fdo/keys/owner_cert.pem
+      device_cert_ca_private_key: /etc/fdo/keys/device_ca_key.der
+      device_cert_ca_chain: /etc/fdo/keys/device_ca_cert.pem
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -142,7 +170,6 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    # path: "/mnt/data"
     path: "/root/fdo/data"
 
 ---
