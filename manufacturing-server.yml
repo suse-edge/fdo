@@ -3,8 +3,9 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: manufacturing-server
-  name: manufacturing-server
+    app: fdo
+    fdo-service: manufacturing
+  name: manufacturing-server-svc
 spec:
   ports:
     # - name: "9001"
@@ -15,13 +16,17 @@ spec:
       port: 9001
       targetPort: 9001
   selector:
-    app: manufacturing-server
+    app: fdo
+    fdo-service: manufacturing
   type: NodePort
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: manufacturing-server-ingress
+  labels:
+    app: fdo
+    fdo-service: manufacturing
 spec:
   ingressClassName: nginx
   rules:
@@ -41,18 +46,21 @@ kind: Deployment
 metadata:
   name: manufacturing-server
   labels:
-    app: manufacturing-server
+    app: fdo
+    fdo-service: manufacturing
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: manufacturing-server
+      app: fdo
+      fdo-service: manufacturing
   template:
     metadata:
       annotations:
         # bind-mount-options: /root/fdo/config:Z
       labels:
-        app: manufacturing-server
+        app: fdo
+        fdo-service: manufacturing
       name: manufacturing-server
     spec:
       containers:
@@ -120,6 +128,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: manufacturing-server-config
+  labels:
+    app: fdo
+    fdo-service: manufacturing
 data:
   manufacturing-server.yml: |+
     ---
