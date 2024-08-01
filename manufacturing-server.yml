@@ -31,11 +31,11 @@ spec:
   ingressClassName: nginx
   rules:
     - host: manufacturing-192.168.122.70.sslip.io
-    - http:
+      http:
         paths:
           - backend:
               service:
-                name: manufacturing-server
+                name: manufacturing-server-svc
                 port:
                   number: 9001
             path: /
