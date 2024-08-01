@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rendezvous-server
+  labels:
+    app: fdo
+    fdo-service: rendezvous
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fdo
+      fdo-service: rendezvous
+  template:
+    metadata:
+      annotations:
+      labels:
+        app: fdo
+        fdo-service: rendezvous
+      name: rendezvous-server
+    spec:
+      containers:
+        - image: quay.io/fido-fdo/rendezvous-server:latest
+          name: rendezvous-server
+          ports:
+            - containerPort: 9002
+          volumeMounts:
+            - name: rendezvous-server-config
+              mountPath: /etc/fdo/rendezvous-server.conf.d/
+              readOnly: true
+            - name: manufacturer-cert
+              mountPath: /etc/fdo/keys/manufacturer_cert.pem
+              subPath: manufacturer_cert.pem
+              readOnly: true
+            - name: registered
+              mountPath: /etc/fdo/registered
+            - name: sessions
+              mountPath: /etc/fdo/sessions
+          # securityContext:
+          #   allowPrivilegeEscalation: false
+          #   capabilities:
+          #     drop: ["ALL"]
+      volumes:
+        - name: rendezvous-server-config
+          configMap:
+            name: rendezvous-server-config
+        - name: manufacturer-cert
+          secret:
+            secretName: manufacturer-cert-pem
+        - name: sessions
+          emptyDir: {}
+        - name: registered
+          emptyDir: {}
+      # securityContext:
+      #   runAsNonRoot: true
+      #   seccompProfile:
+      #     type: RuntimeDefault
