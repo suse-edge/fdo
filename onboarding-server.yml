@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: onboarding-server
+  labels:
+    app: fdo
+    fdo-service: owner-onboarding
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fdo
+      fdo-service: owner-onboarding
+  template:
+    metadata:
+      annotations:
+      labels:
+        app: fdo
+        fdo-service: owner-onboarding
+      name: onboarding-server
+    spec:
+      containers:
+        - image: quay.io/fido-fdo/owner-onboarding-server:latest
+          name: owner-onboarding-server
+          ports:
+            - containerPort: 9002
+          volumeMounts:
+            - name: owner-onboarding-config
+              mountPath: /etc/fdo/owner-onboarding-server.conf.d/
+              readOnly: true
+            - name: ownership-vouchers
+              mountPath: /etc/fdo/ownership_vouchers
+            - name: owner-cert
+              mountPath: /etc/fdo/keys/owner_cert.pem
+              subPath: owner_cert.pem
+              readOnly: true
+            - name: owner-key
+              mountPath: /etc/fdo/keys/owner_key.der
+              subPath: owner_key.der
+              readOnly: true
+            - name: device-ca-cert-chain
+              mountPath: /etc/fdo/keys/device_ca_cert.pem
+              subPath: device_ca_cert.pem
+              readOnly: true
+            - name: sessions
+              mountPath: /etc/fdo/sessions
+          # securityContext:
+          #   allowPrivilegeEscalation: false
+          #   capabilities:
+          #     drop: ["ALL"]
+        - image: quay.io/fido-fdo/owner-onboarding-server:latest
+          name: serviceinfo-api-server
+          ports:
+            - containerPort: 9003
+          volumeMounts:
+            - name: serviceinfo-api-config
+              mountPath: /etc/fdo/serviceinfo-api-server.conf.d/
+              readOnly: true
+            - name: device-specific-serviceinfo
+              mountPath: /etc/fdo/device_specific_serviceinfo
+            # ServiceInfoFiles:
+            # - name: service-info-file-1
+            #   mountPath: /etc/fdo/files/service-info-file-1
+            #   readOnly: true
+          # securityContext:
+          #   allowPrivilegeEscalation: false
+          #   capabilities:
+          #     drop: ["ALL"]
+      volumes:
+        - name: owner-onboarding-config
+          configMap:
+            name: owner-onboarding-config
+        - name: owner-cert
+          secret:
+            secretName: owner-cert-pem
+        - name: owner-key
+          secret:
+            secretName: owner-key-der
+        - name: device-ca-cert-chain
+          secret:
+            secretName: device-ca-cert-pem
+        - name: ownership-vouchers
+          emptyDir: {}
+          # persistentVolumeClaim:
+          #   claimName: fdo-ownership-vouchers-pvc
+        - name: sessions
+          emptyDir: {}
+        - name: serviceinfo-api-config
+          configMap:
+            name: serviceinfo-api-config
+        - name: device-specific-serviceinfo
+          emptyDir: {}
+        # ServiceInfoFiles:
+        # - name: service-info-file-1
+        #   configMap:
+        #     name: fdo-service-info-file-1
+      # securityContext:
+      #   runAsNonRoot: true
+      #   seccompProfile:
+      #     type: RuntimeDefault
