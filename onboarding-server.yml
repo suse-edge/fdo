@@ -168,7 +168,7 @@ data:
     ov_re_registration_window: 61
     bind: 0.0.0.0:9003
     service_info_api_url: "http://localhost:9004/device_info"
-    # service_info_api_authentication: None
+    service_info_api_authentication: None
 ---
 apiVersion: v1
 kind: ConfigMap
