@@ -48,7 +48,7 @@ spec:
           #   allowPrivilegeEscalation: false
           #   capabilities:
           #     drop: ["ALL"]
-        - image: quay.io/fido-fdo/owner-onboarding-server:latest
+        - image: quay.io/fido-fdo/serviceinfo-api-server:latest
           name: serviceinfo-api-server
           ports:
             - containerPort: 9003
