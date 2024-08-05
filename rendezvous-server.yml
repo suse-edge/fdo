@@ -115,5 +115,4 @@ data:
     # trusted_device_keys_path: /etc/fdo/keys/device_ca_cert.pem
     max_wait_seconds: ~
     bind: "0.0.0.0:9002"
----
 

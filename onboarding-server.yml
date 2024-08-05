@@ -23,7 +23,7 @@ spec:
         - image: quay.io/fido-fdo/owner-onboarding-server:latest
           name: owner-onboarding-server
           ports:
-            - containerPort: 9002
+            - containerPort: 9003
           volumeMounts:
             - name: owner-onboarding-config
               mountPath: /etc/fdo/owner-onboarding-server.conf.d/
@@ -51,7 +51,7 @@ spec:
         - image: quay.io/fido-fdo/serviceinfo-api-server:latest
           name: serviceinfo-api-server
           ports:
-            - containerPort: 9003
+            - containerPort: 9004
           volumeMounts:
             - name: serviceinfo-api-config
               mountPath: /etc/fdo/serviceinfo-api-server.conf.d/
@@ -98,3 +98,59 @@ spec:
       #   runAsNonRoot: true
       #   seccompProfile:
       #     type: RuntimeDefault
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: owner-onboarding-config
+  labels:
+    app: fdo
+    fdo-service: owner-onboarding
+data:
+  owner-onboarding-server.yml: |+
+    ---
+    session_store_driver:
+      Directory:
+        path: /etc/fdo/sessions
+    ownership_voucher_store_driver:
+      Directory:
+        path: /etc/fdo/ownership_vouchers/
+    trusted_device_keys_path: /etc/fdo/keys/device_ca_cert.pem
+    owner_private_key_path: /etc/fdo/keys/owner_key.der
+    owner_public_key_path: /etc/fdo/keys/owner_cert.pem
+    owner_addresses:
+    - transport: HTTP
+      port: 80
+      addresses:
+        - dns_name: ownership-192.168.122.70.sslip.io
+        # - ip_address: 192.168.122.1
+    report_to_rendezvous_endpoint_enabled: false
+    ov_registration_period: 600
+    ov_re_registration_window: 61
+    bind: 0.0.0.0:9003
+    service_info_api_url: "http://localhost:9004/device_info"
+    # service_info_api_authentication: None
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: serviceinfo-api-config
+  labels:
+    app: fdo
+    fdo-service: owner-onboarding
+data:
+  serviceinfo-api-server.yml: |+
+    ---
+    bind: 0.0.0.0:9004
+    device_specific_store_driver:
+      Directory:
+        path: /etc/fdo/device_specific_serviceinfo
+    # service_info_auth_token: TestAuthToken
+    # admin_auth_token: TestAdminToken
+    service_info:
+      commands:
+      - command: ls
+        args:
+        - /etc/hosts
+        return_stdout: true
+        return_stderr: true
