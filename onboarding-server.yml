@@ -1,3 +1,42 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: fdo
+    fdo-service: owner-onboarding
+  name: onboarding-server-svc
+spec:
+  ports:
+    - protocol: TCP
+      port: 9003
+      targetPort: 9003
+  selector:
+    app: fdo
+    fdo-service: owner-onboarding
+  type: NodePort
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: onboarding-server-ingress
+  labels:
+    app: fdo
+    fdo-service: owner-onboarding
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: onboarding-192.168.122.70.sslip.io
+      http:
+        paths:
+          - backend:
+              service:
+                name: onboarding-server-svc
+                port:
+                  number: 9003
+            path: /
+            pathType: Prefix
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -122,7 +161,7 @@ data:
     - transport: HTTP
       port: 80
       addresses:
-        - dns_name: ownership-192.168.122.70.sslip.io
+        - dns_name: onboarding-192.168.122.70.sslip.io
         # - ip_address: 192.168.122.1
     report_to_rendezvous_endpoint_enabled: false
     ov_registration_period: 600
