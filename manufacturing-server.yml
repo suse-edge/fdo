@@ -144,14 +144,14 @@ data:
         path: /etc/fdo/keys
     bind: 0.0.0.0:9001
     rendezvous_info:
-    - dns: fdo.example.com
-      device_port: 8082
-      owner_port: 8082
+    - dns: rendezvous-192.168.122.70.sslip.io
+      device_port: 80
+      owner_port: 80
       protocol: http
-    - ip: 127.0.0.1
-      device_port: 8084
-      owner_port: 8084
-      protocol: http
+    # - ip: 127.0.0.1
+    #   device_port: 8084
+    #   owner_port: 8084
+    #   protocol: http
     protocols:
       diun:
         key_path: /etc/fdo/keys/diun_key.der
@@ -193,4 +193,3 @@ spec:
   resources:
     requests:
       storage: 10Mi
-
