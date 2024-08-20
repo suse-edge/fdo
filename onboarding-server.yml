@@ -168,7 +168,9 @@ data:
     ov_re_registration_window: 61
     bind: 0.0.0.0:9003
     service_info_api_url: "http://localhost:9004/device_info"
-    service_info_api_authentication: None
+    service_info_api_authentication:
+      BearerToken:
+        token: TestAuthToken
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -184,7 +186,7 @@ data:
     device_specific_store_driver:
       Directory:
         path: /etc/fdo/device_specific_serviceinfo
-    # service_info_auth_token: TestAuthToken
+    service_info_auth_token: TestAuthToken
     # admin_auth_token: TestAdminToken
     service_info:
       commands:
@@ -193,3 +195,4 @@ data:
         - /etc/hosts
         return_stdout: true
         return_stderr: true
+      after_onboarding_reboot: true
